@@ -1,36 +1,127 @@
 package jps
 
 object RTree {
-    def instance[T]: RTree[T] = new RTree[T](Node.newRoot, 0)
+    def instance[T](minEntries: Int, maxEntries: Int): RTree[T] = {
+        RTree[T](Node.newRoot, 0, minEntries, maxEntries)
+    }
 }
 
-case class RTree[T](root: Node[T], size: Int) {
+case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
     def insert(rectangle: Rectangle, value: T): RTree[T] = {
         insert(Entry[T](rectangle, value))
     }
 
+
     def insert(entry: Entry[T]): RTree[T] = {
-        val destNode: Node[T] = chooseLeaf(root, entry)
+        val destNode: Leaf[T] = chooseLeaf(root, entry).asInstanceOf[Leaf[T]]
+        if (destNode.children.size > maxEntries) {
+            val split: Vector[Node[T]] = splitNode(destNode)
+            adjustTree(split(0), Some(split(1)))
+        } else {
+            adjustTree(destNode, None)
+        }
     }
 
     def chooseLeaf(root: Node[T], entry: Entry[T]): Node[T] = {
         val n = root
         n match {
-            case n : Leaf[T] => n
-            case n : Branch[T] => chooseChild(n.children, entry)
+            case n: Leaf[T] => n
+            case n: Branch[T] => chooseLeaf(chooseSubtree(n.children, entry), entry)
         }
     }
 
-    def chooseChild(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
-        val enlargements = children.map(c => (c, c.boundingRect.enlargementToFit(entry.rectangle)))
-        val minVal = enlargements.minBy(_._2)
-        val cos = enlargements.filter(_._2 == minVal._2).map(_._1)
-        cos.minBy(child => child.boundingRect.area())
+    def splitNode(leaf: Leaf[T]): Vector[Node[T]] = {
+        val groupLeaders: (Entry[T], Entry[T]) = linearPickSeeds(leaf.children)
+
+    }
+
+    def linearPickSeeds(children: Vector[Entry[T]]): (Entry[T], Entry[T]) = {
+        case class Params(leftMostLeftSide: Double,         //dimLb
+                         leftMostRightSide: Double,         //dimMinUb
+                         rightMostLeftSide: Double,         //dimMaxLb
+                         rightMostRightSide: Double,        //dimUb
+                         leftEntry: Option[Entry[T]],       //nMinLb
+                         rightEntry: Option[Entry[T]])      //nMaxLb //TODO delete
+
+        def lpsX(children: Vector[Entry[T]], s: Params): (Double, Entry[T], Entry[T]) = {
+            val ch = children.head
+            val leftMostLeftSide = Math.min(ch.rect.x, s.leftMostLeftSide)
+            val (leftMostRightSide, leftEntry) = if (ch.rect.x2 < s.leftMostRightSide) (ch.rect.x2, Some(ch)) else (s.leftMostRightSide, s.leftEntry)
+            val (rightMostLeftSide, rightEntry) = if (ch.rect.x > s.rightMostLeftSide) (ch.rect.x, Some(ch)) else (s.rightMostLeftSide, s.rightEntry)
+            val rightMostRightSide = Math.max(ch.rect.x2, s.rightMostRightSide)
+            val sides = Params(leftMostLeftSide, leftMostRightSide, rightMostLeftSide, rightMostRightSide, leftEntry, rightEntry)
+            if (children.nonEmpty) {
+                lpsX(children.tail, s)
+            } else {
+                val separation = Math.abs((leftMostRightSide - rightMostLeftSide) / (rightMostRightSide - leftMostLeftSide))
+                (separation, s.leftEntry.get, s.rightEntry.get)
+            }
+        }
+
+        def lpsY(children: Vector[Entry[T]], s: Params): (Double, Entry[T], Entry[T]) = {
+            val ch = children.head
+            val leftMostLeftSide = Math.min(ch.rect.y, s.leftMostLeftSide)
+            val (leftMostRightSide, leftEntry) = if (ch.rect.y2 < s.leftMostRightSide) (ch.rect.y2, Some(ch)) else (s.leftMostRightSide, s.leftEntry)
+            val (rightMostLeftSide, rightEntry) = if (ch.rect.y > s.rightMostLeftSide) (ch.rect.y, Some(ch)) else (s.rightMostLeftSide, s.rightEntry)
+            val rightMostRightSide = Math.max(ch.rect.y2, s.rightMostRightSide)
+            val sides = Params(leftMostLeftSide, leftMostRightSide, rightMostLeftSide, rightMostRightSide, leftEntry, rightEntry)
+            if (children.nonEmpty) {
+                lpsX(children.tail, s)
+            } else {
+                val separation = Math.abs((leftMostRightSide - rightMostLeftSide) / (rightMostRightSide - leftMostLeftSide))
+                (separation, s.leftEntry.get, s.rightEntry.get)
+            }
+        }
+
+
+        val initialSides = Params(Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue, None, None)
+        val xSeeds = lpsX(children, initialSides)
+        val ySeeds = lpsY(children, initialSides)
+        if (xSeeds._1 > ySeeds._1) (xSeeds._2, xSeeds._3) else (ySeeds._2, ySeeds._3)
+    }
+
+    //    for (int i = 0; i < numDims; i++) {
+    //        float dimLb = Float.MAX_VALUE, dimMinUb = Float.MAX_VALUE;
+    //        float dimUb = -1.0f * Float.MAX_VALUE, dimMaxLb = -1.0f * Float.MAX_VALUE;
+    //        Node nMaxLb = null, nMinUb = null;
+    //        for (Node n : nn) {
+    //            if (n.coords[i] < dimLb) {
+    //                dimLb = n.coords[i];
+    //            }
+    //            if (n.dimensions[i] + n.coords[i] > dimUb) {
+    //                dimUb = n.dimensions[i] + n.coords[i];
+    //            }
+    //            if (n.coords[i] > dimMaxLb) {
+    //                dimMaxLb = n.coords[i];
+    //                nMaxLb = n;
+    //            }
+    //            if (n.dimensions[i] + n.coords[i] < dimMinUb) {
+    //                dimMinUb = n.dimensions[i] + n.coords[i];
+    //                nMinUb = n;
+    //            }
+    //        }
+    //        float sep = (nMaxLb == nMinUb) ? -1.0f :
+    //            Math.abs((dimMinUb - dimMaxLb) / (dimUb - dimLb));
+    //        if (sep >= bestSep) {
+    //            bestPair[0] = nMaxLb;
+    //            bestPair[1] = nMinUb;
+    //            bestSep = sep;
+    //            foundBestPair = true;
+    //        }
+
+
+    def adjustTree(l: Node[T], ll: Option[Node[T]]): RTree[T] = ???
+
+    def chooseSubtree(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
+        val childEnlPairs = children.map(c => (c, c.boundingRect.enlargementToFit(entry.rect)))
+        val minVal = childEnlPairs.minBy(_._2)
+        val leastEnlChildren = childEnlPairs.filter(_._2 == minVal._2).map(_._1)
+        leastEnlChildren.minBy(child => child.boundingRect.area())
     }
 
 
-//    val r = root.insert(entry) match {
-//        case Left(rs) => Branch(rs, rs.foldLeft(Box.empty)(_ expand _.box))
-//        case Right(r) => r
-//    }
+    //    val r = root.insert(entry) match {
+    //        case Left(rs) => Branch(rs, rs.foldLeft(Box.empty)(_ expand _.box))
+    //        case Right(r) => r
+    //    }
 }

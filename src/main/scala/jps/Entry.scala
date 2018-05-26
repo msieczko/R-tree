@@ -1,11 +1,5 @@
 package jps
 
-
-
-//object Entry {
-//    def instance[T]: Entry[T] =
-//}
-
-case class Entry[T](rectangle: Rectangle, value: T) {
+case class Entry[T](rect: Rectangle, value: T) {
 
 }
