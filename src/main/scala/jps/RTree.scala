@@ -1,22 +1,25 @@
 package jps
 
 object RTree {
-    def instance[T](minEntries: Int, maxEntries: Int): RTree[T] = {
+    def apply[T](minEntries: Int, maxEntries: Int): RTree[T] = {
         RTree[T](Node.newRoot, 0, minEntries, maxEntries)
+    }
+
+    def apply[T]() :RTree[T] = {
+        RTree[T](Node.newRoot, 0, 2, 50)
     }
 }
 
-case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
+case class RTree[T] (root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
     def insert(rectangle: Rectangle, value: T): RTree[T] = {
         insert(Entry[T](rectangle, value))
     }
 
-
     def insert(entry: Entry[T]): RTree[T] = {
         val destNode: Leaf[T] = chooseLeaf(root, entry).asInstanceOf[Leaf[T]]
         if (destNode.children.size > maxEntries) {
-            val split: Vector[Node[T]] = splitNode(destNode)
-            adjustTree(split(0), Some(split(1)))
+            val split: (Leaf[T], Leaf[T]) = splitNode(destNode)
+            adjustTree(split._1, Some(split._2))
         } else {
             adjustTree(destNode, None)
         }
@@ -30,10 +33,14 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         }
     }
 
-    def splitNode(leaf: Leaf[T]): Vector[Node[T]] = {
-        val groupLeaders: (Entry[T], Entry[T]) = linearPickSeeds(leaf.children)
+    def splitNode(leaf: Leaf[T]): (Leaf[T], Leaf[T]) = {
+        val children: Vector[Entry[T]] = leaf.children
+        val (leftSeed, rightSeed): (Entry[T], Entry[T]) = linearPickSeeds(children)
+        val remainingChildren = children.filter(c => c != leftSeed && c != rightSeed)
 
+        ???
     }
+
 
     def linearPickSeeds(children: Vector[Entry[T]]): (Entry[T], Entry[T]) = {
         case class Params(leftMostLeftSide: Double,         //dimLb
@@ -80,36 +87,6 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         if (xSeeds._1 > ySeeds._1) (xSeeds._2, xSeeds._3) else (ySeeds._2, ySeeds._3)
     }
 
-    //    for (int i = 0; i < numDims; i++) {
-    //        float dimLb = Float.MAX_VALUE, dimMinUb = Float.MAX_VALUE;
-    //        float dimUb = -1.0f * Float.MAX_VALUE, dimMaxLb = -1.0f * Float.MAX_VALUE;
-    //        Node nMaxLb = null, nMinUb = null;
-    //        for (Node n : nn) {
-    //            if (n.coords[i] < dimLb) {
-    //                dimLb = n.coords[i];
-    //            }
-    //            if (n.dimensions[i] + n.coords[i] > dimUb) {
-    //                dimUb = n.dimensions[i] + n.coords[i];
-    //            }
-    //            if (n.coords[i] > dimMaxLb) {
-    //                dimMaxLb = n.coords[i];
-    //                nMaxLb = n;
-    //            }
-    //            if (n.dimensions[i] + n.coords[i] < dimMinUb) {
-    //                dimMinUb = n.dimensions[i] + n.coords[i];
-    //                nMinUb = n;
-    //            }
-    //        }
-    //        float sep = (nMaxLb == nMinUb) ? -1.0f :
-    //            Math.abs((dimMinUb - dimMaxLb) / (dimUb - dimLb));
-    //        if (sep >= bestSep) {
-    //            bestPair[0] = nMaxLb;
-    //            bestPair[1] = nMinUb;
-    //            bestSep = sep;
-    //            foundBestPair = true;
-    //        }
-
-
     def adjustTree(l: Node[T], ll: Option[Node[T]]): RTree[T] = ???
 
     def chooseSubtree(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
@@ -118,10 +95,4 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         val leastEnlChildren = childEnlPairs.filter(_._2 == minVal._2).map(_._1)
         leastEnlChildren.minBy(child => child.boundingRect.area())
     }
-
-
-    //    val r = root.insert(entry) match {
-    //        case Left(rs) => Branch(rs, rs.foldLeft(Box.empty)(_ expand _.box))
-    //        case Right(r) => r
-    //    }
 }

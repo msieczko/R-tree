@@ -26,6 +26,8 @@ object Main extends App {
 
 
     val tree = RTree.empty
+    val tr : jps.RTree[Int] = jps.RTree[Int](jps.Node.newRoot, 0, 2, 50)
+
 
     case class Student(name: String, score: Int)
 
