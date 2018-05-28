@@ -13,6 +13,12 @@ case class Rectangle(coords: Coordinates, dims: Dimensions) {
 
     def y: Double = coords.y
 
+    //FIXME obserwacja: czy aby na pewno dx i dy mogą być ujemne?
+    //FIXME analiza algorytmu tighten() z RTree.java wskazuje, autor zakłada dx, dy >= 0
+    //FIXME z drugiej strony wcześniej uważaliśmy, że dx, dy mogą być ujemne
+    //FIXME trzeba sprawdzić do tej pory zaimplementowane algorytmy
+    //FIXME
+
     def dx: Double = dims.dx
 
     def dy: Double = dims.dy
@@ -51,6 +57,8 @@ object Rectangle {
         val d = -2.0 * minC
         Rectangle(Coordinates(minC, minC), Dimensions(d, d))
     }
+
+    val minRect: Rectangle = Rectangle(Coordinates(0.0, 0.0), Dimensions(0.0, 0.0))
 }
 
 /**

@@ -33,12 +33,18 @@ case class RTree[T] (root: Node[T], size: Int, minEntries: Int, maxEntries: Int)
         }
     }
 
+    def createLeafs(remainingChildren: Vector[Entry[T]], leftSeed: Entry[T], rightSeed: Entry[T]): (Leaf[T], Leaf[T]) = ???
+
     def splitNode(leaf: Leaf[T]): (Leaf[T], Leaf[T]) = {
         val children: Vector[Entry[T]] = leaf.children
         val (leftSeed, rightSeed): (Entry[T], Entry[T]) = linearPickSeeds(children)
         val remainingChildren = children.filter(c => c != leftSeed && c != rightSeed)
+        //if all entries have been assigned, stop
+        //if one group has so few entries that all remaining entries must be assigned to it in order for it to have
+        //  minimum number of entries, assign them and stop
 
-        ???
+//        val leftLeaf = Leaf()
+        createLeafs(remainingChildren, leftSeed, rightSeed)
     }
 
 
