@@ -1,5 +1,16 @@
 package jps
 
+trait Bound {
+    def coords: Coordinates
+    def dims: Dimensions
+    def x: Double = coords.x
+    def y: Double = coords.y
+    def x2: Double = x + width
+    def y2: Double = y + height
+    def width: Double = dims.dx
+    def height: Double = dims.dy
+}
+
 case class Coordinates(x: Double, y: Double)
 
 case class Dimensions(dx: Double, dy: Double)
@@ -8,30 +19,7 @@ case class Dimensions(dx: Double, dy: Double)
   * @param coords Left bottom corner of the rectangle
   * @param dims   Dimensions of the rectangle
   */
-case class Rectangle(coords: Coordinates, dims: Dimensions) {
-    def x: Double = coords.x
-
-    def y: Double = coords.y
-
-    //FIXME obserwacja: czy aby na pewno dx i dy mogą być ujemne?
-    //FIXME analiza algorytmu tighten() z RTree.java wskazuje, autor zakłada dx, dy >= 0
-    //FIXME z drugiej strony wcześniej uważaliśmy, że dx, dy mogą być ujemne
-    //FIXME trzeba sprawdzić do tej pory zaimplementowane algorytmy
-    //FIXME
-
-    def dx: Double = dims.dx
-
-    def dy: Double = dims.dy
-
-    def x2: Double = x + dx
-
-    def y2: Double = y + dy
-
-    def width: Double = Math.abs(dx)
-
-    def height: Double = Math.abs(dy)
-
-    // TODO test
+case class Rectangle(coords: Coordinates, dims: Dimensions) extends Bound {
     def enlargementToFit(rect: Rectangle): Double = {
         val deltaX = if (x2 < rect.x2) {
             rect.x2 - x2
@@ -66,7 +54,10 @@ object Rectangle {
   *
   * @param coords Point coordinates
   */
-case class Point(override val coords: Coordinates)
-    extends Rectangle(coords, Dimensions(0.0, 0.0)) {
-
+case class Point(override val coords: Coordinates) extends Bound {
+    override def dims: Dimensions = Dimensions(0.0, 0.0)
+    override def x2: Double = x
+    override def y2: Double = y
+    override def width: Double = 0.0
+    override def height: Double = 0.0
 }
