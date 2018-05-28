@@ -16,6 +16,11 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     def insert(entry: Entry[T]): RTree[T] = {
+        val r = insert(root, entry) match {
+            case Left(rs) => ???
+            case Right(a) => a
+        }
+//        RTree(r, size + 1)
         val targetLeaf: Leaf[T] = chooseLeaf(root, entry).asInstanceOf[Leaf[T]]
         val newLeaf = targetLeaf :+ entry
         if (newLeaf.children.size > maxEntries) {
@@ -23,6 +28,13 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             adjustTree(split._1, Some(split._2))
         } else {
             adjustTree(newLeaf, None)
+        }
+    }
+
+    def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {
+        val nodeToDescend = chooseSubtree(node.children.asInstanceOf[Vector[Node[T]]], entry)
+        val r = insert(nodeToDescend, entry) match {
+            case Left(nodes) => if (node.children.size == maxEntries) splitNode(node)
         }
     }
 
@@ -35,61 +47,69 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
 
-    def linearPickNext(remainingChildren: Vector[Entry[T]]): (Entry[T], Vector[Entry[T]]) = {
+    def linearPickNext(remainingChildren: Vector[HasBounds]): (HasBounds, Vector[HasBounds]) = {
         (remainingChildren.head, remainingChildren.tail)
     }
 
-    def createLeaves(remainingChildren: Vector[Entry[T]], leftLeaf: Leaf[T], rightLeaf: Leaf[T]): (Leaf[T], Leaf[T]) = {
+    def distribute(remainingChildren: Vector[HasBounds], leftNode: Node[T], rightNode: Node[T]): (Node[T], Node[T]) = {
         if (remainingChildren.isEmpty) {
-            return (leftLeaf, rightLeaf)
+            return (leftNode, rightNode)
         }
         val (child, newRemaining) = linearPickNext(remainingChildren)
         //TODO check this condition:
         // if one group has so few entries that all remaining entries must be assigned to it in order for it to have
         // minimum number of entries, assign them and stop
 
-        val leftEnlargement = leftLeaf.bound.enlargementToFit(child.bound)
-        val rightEnlargement = rightLeaf.bound.enlargementToFit(child.bound)
+        val leftEnlargement = leftNode.bound.enlargementToFit(child.bound)
+        val rightEnlargement = rightNode.bound.enlargementToFit(child.bound)
         if (leftEnlargement > rightEnlargement) {
-            createLeaves(newRemaining, leftLeaf, rightLeaf :+ child)
+            distribute(newRemaining, leftNode, rightNode :+ child)
         } else if (leftEnlargement < rightEnlargement) {
-            createLeaves(newRemaining, leftLeaf :+ child, rightLeaf)
+            distribute(newRemaining, leftNode :+ child, rightNode)
         }
 
-        val leftArea = leftLeaf.bound.area()
-        val rightArea = rightLeaf.bound.area()
+        val leftArea = leftNode.bound.area()
+        val rightArea = rightNode.bound.area()
         if (leftArea > rightArea) {
-            createLeaves(newRemaining, leftLeaf, rightLeaf :+ child)
+            distribute(newRemaining, leftNode, rightNode :+ child)
         } else if (leftArea < rightArea) {
-            createLeaves(newRemaining, leftLeaf :+ child, rightLeaf)
+            distribute(newRemaining, leftNode :+ child, rightNode)
         }
 
-        if (leftLeaf.children.size > rightLeaf.children.size) {
-            createLeaves(newRemaining, leftLeaf, rightLeaf :+ child)
+        if (leftNode.children.size > rightNode.children.size) {
+            distribute(newRemaining, leftNode, rightNode :+ child)
         } else {
-            createLeaves(newRemaining, leftLeaf :+ child, rightLeaf)
+            distribute(newRemaining, leftNode :+ child, rightNode)
         }
     }
 
-    def splitNode(leaf: Leaf[T]): (Leaf[T], Leaf[T]) = {
-        val children: Vector[Entry[T]] = leaf.children
-        val (leftSeed, rightSeed): (Entry[T], Entry[T]) = linearPickSeeds(children)
+    def splitNode(node: Node[T]): (Node[T], Node[T]) = {
+        val children: Vector[HasBounds] = node.children
+        val (leftSeed, rightSeed): (HasBounds, HasBounds) = linearPickSeeds(children)
         val remainingChildren = children.filter(c => c != leftSeed && c != rightSeed)
-        val leftLeaf = Leaf(leftSeed)
-        val rightLeaf = Leaf(rightSeed)
-        createLeaves(remainingChildren, leftLeaf, rightLeaf)
+        val leftNode = leftSeed match {
+            case leftSeed: Entry[T] => Leaf(leftSeed)
+            case leftSeed: Leaf[T] => Branch(leftSeed)
+            case leftSeed: Branch[T] => Branch(leftSeed)
+        }
+        val rightNode = rightSeed match {
+            case rightSeed: Entry[T] => Leaf(rightSeed)
+            case rightSeed: Leaf[T] => Branch(rightSeed)
+            case rightSeed: Branch[T] => Branch(rightSeed)
+        }
+        distribute(remainingChildren, leftNode, rightNode)
     }
 
 
-    def linearPickSeeds(children: Vector[Entry[T]]): (Entry[T], Entry[T]) = {
+    def linearPickSeeds(children: Vector[HasBounds]): (HasBounds, HasBounds) = {
         case class Params(leftMostLeftSide: Double, //dimLb
                           leftMostRightSide: Double, //dimMinUb
                           rightMostLeftSide: Double, //dimMaxLb
                           rightMostRightSide: Double, //dimUb
-                          leftEntry: Option[Entry[T]], //nMinLb
-                          rightEntry: Option[Entry[T]]) //nMaxLb //TODO delete
+                          leftEntry: Option[HasBounds], //nMinLb
+                          rightEntry: Option[HasBounds]) //nMaxLb //TODO delete
 
-        def lpsX(children: Vector[Entry[T]], s: Params): (Double, Entry[T], Entry[T]) = {
+        def lpsX(children: Vector[HasBounds], s: Params): (Double, HasBounds, HasBounds) = {
             val ch = children.head
             val leftMostLeftSide = Math.min(ch.bound.x, s.leftMostLeftSide)
             val (leftMostRightSide, leftEntry) = if (ch.bound.x2 < s.leftMostRightSide) (ch.bound.x2, Some(ch)) else (s.leftMostRightSide, s.leftEntry)
@@ -104,7 +124,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             }
         }
 
-        def lpsY(children: Vector[Entry[T]], s: Params): (Double, Entry[T], Entry[T]) = {
+        def lpsY(children: Vector[HasBounds], s: Params): (Double, HasBounds, HasBounds) = {
             val ch = children.head
             val leftMostLeftSide = Math.min(ch.bound.y, s.leftMostLeftSide)
             val (leftMostRightSide, leftEntry) = if (ch.bound.y2 < s.leftMostRightSide) (ch.bound.y2, Some(ch)) else (s.leftMostRightSide, s.leftEntry)
@@ -130,6 +150,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         if (n == root) {
             RTree(n, n.children.size, minEntries, maxEntries)
         }
+        ???
     }
 
     def chooseSubtree(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
