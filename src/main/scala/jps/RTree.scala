@@ -16,25 +16,32 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     def insert(entry: Entry[T]): RTree[T] = {
-        val r = insert(root, entry) match {
-            case Left(rs) => ???
-            case Right(a) => a
+        if (size == 0) {
+            return RTree(Leaf(entry), 1, minEntries, maxEntries)
         }
-//        RTree(r, size + 1)
-        val targetLeaf: Leaf[T] = chooseLeaf(root, entry).asInstanceOf[Leaf[T]]
-        val newLeaf = targetLeaf :+ entry
-        if (newLeaf.children.size > maxEntries) {
-            val split: (Leaf[T], Leaf[T]) = splitNode(newLeaf)
-            adjustTree(split._1, Some(split._2))
-        } else {
-            adjustTree(newLeaf, None)
+        val newRoot = insert(root, entry) match {
+            case Left(splitRoot) => Branch(Vector(splitRoot._1, splitRoot._2))
+            case Right(oldRoot) => oldRoot
         }
+        RTree(newRoot, size + 1, minEntries, maxEntries)
     }
 
     def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {
         val nodeToDescend = chooseSubtree(node.children.asInstanceOf[Vector[Node[T]]], entry)
-        val r = insert(nodeToDescend, entry) match {
-            case Left(nodes) => if (node.children.size == maxEntries) splitNode(node)
+        insert(nodeToDescend, entry) match {
+            case Left(splitNodes) =>
+                val newChildren = node.children.filter(n => n != nodeToDescend) :+ splitNodes._1 :+ splitNodes._2
+                val newNode = newChildren(0) match {
+                    case _: Entry[T] => Leaf(newChildren.asInstanceOf[Entry[T]])
+                    case _: Leaf[T] => Branch(newChildren.asInstanceOf[Leaf[T]])
+                    case _: Branch[T] => Branch(newChildren.asInstanceOf[Branch[T]])
+                }
+                if (node.children.size == maxEntries) {
+                    Left(splitNode(newNode))
+                } else {
+                    Right(newNode)
+                }
+            case Right(singleNode) => Right(singleNode)
         }
     }
 
