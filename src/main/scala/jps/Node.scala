@@ -13,7 +13,12 @@ object Node {
     def newRoot[T]: Leaf[T] = Leaf(Vector.empty, Rectangle.maxRect)
 }
 
-case class Leaf[T](children: Vector[Entry[T]], bound: Bound) extends Node[T]
+case class Leaf[T](children: Vector[Entry[T]], bound: Bound) extends Node[T] {
+    def :+(entry: Entry[T]): Leaf[T] = {
+        Leaf(children :+ entry)
+    }
+
+}
 
 object Leaf {
     def apply[T](singleChild: Entry[T]): Leaf[T] = {
