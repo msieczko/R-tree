@@ -10,6 +10,7 @@ object RTree {
     }
 }
 
+//TODO for later: use copy instead of constructor
 case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
     def insert(bound: Bound, value: T): RTree[T] = {
         insert(Entry[T](bound, value))
@@ -27,6 +28,13 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {
+        if (node.isInstanceOf[Leaf[T]]) {
+            if (node.children.size < maxEntries) {
+                return Right(node :+ entry)
+            } else {
+                return Left(splitNode(node :+ entry))
+            }
+        }
         val nodeToDescend = chooseSubtree(node.children.asInstanceOf[Vector[Node[T]]], entry)
         insert(nodeToDescend, entry) match {
             case Left(splitNodes) =>
@@ -70,17 +78,17 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         val leftEnlargement = leftNode.bound.enlargementToFit(child.bound)
         val rightEnlargement = rightNode.bound.enlargementToFit(child.bound)
         if (leftEnlargement > rightEnlargement) {
-            distribute(newRemaining, leftNode, rightNode :+ child)
+            return distribute(newRemaining, leftNode, rightNode :+ child)
         } else if (leftEnlargement < rightEnlargement) {
-            distribute(newRemaining, leftNode :+ child, rightNode)
+            return distribute(newRemaining, leftNode :+ child, rightNode)
         }
 
         val leftArea = leftNode.bound.area()
         val rightArea = rightNode.bound.area()
         if (leftArea > rightArea) {
-            distribute(newRemaining, leftNode, rightNode :+ child)
+            return distribute(newRemaining, leftNode, rightNode :+ child)
         } else if (leftArea < rightArea) {
-            distribute(newRemaining, leftNode :+ child, rightNode)
+            return distribute(newRemaining, leftNode :+ child, rightNode)
         }
 
         if (leftNode.children.size > rightNode.children.size) {
@@ -116,43 +124,41 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
                           leftEntry: Option[HasBounds], //nMinLb
                           rightEntry: Option[HasBounds]) //nMaxLb //TODO delete
 
-        def lpsX(children: Vector[HasBounds], s: Params): (Double, HasBounds, HasBounds) = {
-            val ch = children.head
-            val leftMostLeftSide = Math.min(ch.bound.x, s.leftMostLeftSide)
-            val (leftMostRightSide, leftEntry) = if (ch.bound.x2 < s.leftMostRightSide) (ch.bound.x2, Some(ch)) else (s.leftMostRightSide, s.leftEntry)
-            val (rightMostLeftSide, rightEntry) = if (ch.bound.x > s.rightMostLeftSide) (ch.bound.x, Some(ch)) else (s.rightMostLeftSide, s.rightEntry)
-            val rightMostRightSide = Math.max(ch.bound.x2, s.rightMostRightSide)
-            val sides = Params(leftMostLeftSide, leftMostRightSide, rightMostLeftSide, rightMostRightSide, leftEntry, rightEntry)
-            if (children.nonEmpty) {
-                lpsX(children.tail, s)
+        def lpsX(ch: HasBounds, remaining: Vector[HasBounds], p: Params): (Double, HasBounds, HasBounds) = {
+            val leftMostLeftSide = Math.min(ch.bound.x, p.leftMostLeftSide)
+            val (leftMostRightSide, leftEntry) = if (ch.bound.x2 < p.leftMostRightSide) (ch.bound.x2, Some(ch)) else (p.leftMostRightSide, p.leftEntry)
+            val (rightMostLeftSide, rightEntry) = if (ch.bound.x > p.rightMostLeftSide) (ch.bound.x, Some(ch)) else (p.rightMostLeftSide, p.rightEntry)
+            val rightMostRightSide = Math.max(ch.bound.x2, p.rightMostRightSide)
+            val params = Params(leftMostLeftSide, leftMostRightSide, rightMostLeftSide, rightMostRightSide, leftEntry, rightEntry)
+            if (remaining.nonEmpty) {
+                lpsX(remaining.head, remaining.tail, params)
             } else {
                 val separation = Math.abs((leftMostRightSide - rightMostLeftSide) / (rightMostRightSide - leftMostLeftSide))
-                (separation, s.leftEntry.get, s.rightEntry.get)
+                (separation, leftEntry.get, rightEntry.get)
             }
         }
 
-        def lpsY(children: Vector[HasBounds], s: Params): (Double, HasBounds, HasBounds) = {
-            val ch = children.head
-            val leftMostLeftSide = Math.min(ch.bound.y, s.leftMostLeftSide)
-            val (leftMostRightSide, leftEntry) = if (ch.bound.y2 < s.leftMostRightSide) (ch.bound.y2, Some(ch)) else (s.leftMostRightSide, s.leftEntry)
-            val (rightMostLeftSide, rightEntry) = if (ch.bound.y > s.rightMostLeftSide) (ch.bound.y, Some(ch)) else (s.rightMostLeftSide, s.rightEntry)
-            val rightMostRightSide = Math.max(ch.bound.y2, s.rightMostRightSide)
-            val sides = Params(leftMostLeftSide, leftMostRightSide, rightMostLeftSide, rightMostRightSide, leftEntry, rightEntry)
-            if (children.nonEmpty) {
-                lpsX(children.tail, s)
+        def lpsY(ch: HasBounds, remaining: Vector[HasBounds], p: Params): (Double, HasBounds, HasBounds) = {
+            val leftMostLeftSide = Math.min(ch.bound.y, p.leftMostLeftSide)
+            val (leftMostRightSide, leftEntry) = if (ch.bound.y2 < p.leftMostRightSide) (ch.bound.y2, Some(ch)) else (p.leftMostRightSide, p.leftEntry)
+            val (rightMostLeftSide, rightEntry) = if (ch.bound.y > p.rightMostLeftSide) (ch.bound.y, Some(ch)) else (p.rightMostLeftSide, p.rightEntry)
+            val rightMostRightSide = Math.max(ch.bound.y2, p.rightMostRightSide)
+            val params = Params(leftMostLeftSide, leftMostRightSide, rightMostLeftSide, rightMostRightSide, leftEntry, rightEntry)
+            if (remaining.nonEmpty) {
+                lpsY(remaining.head, remaining.tail, params)
             } else {
                 val separation = Math.abs((leftMostRightSide - rightMostLeftSide) / (rightMostRightSide - leftMostLeftSide))
-                (separation, s.leftEntry.get, s.rightEntry.get)
+                (separation, leftEntry.get, rightEntry.get)
             }
         }
 
-
-        val initialSides = Params(Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue, None, None)
-        val xSeeds = lpsX(children, initialSides)
-        val ySeeds = lpsY(children, initialSides)
+        val initParams = Params(Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue, None, None)
+        val xSeeds = lpsX(children.head, children.tail, initParams)
+        val ySeeds = lpsY(children.head, children.tail, initParams)
         if (xSeeds._1 > ySeeds._1) (xSeeds._2, xSeeds._3) else (ySeeds._2, ySeeds._3)
     }
 
+    //FIXME unused function
     def adjustTree(n: Node[T], nn: Option[Node[T]]): RTree[T] = {
         if (n == root) {
             RTree(n, n.children.size, minEntries, maxEntries)

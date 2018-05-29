@@ -18,19 +18,12 @@ trait Bound {
     def height: Double = dims.height
 
     def enlargementToFit(bound: Bound): Double = {
-        val deltaX = if (x2 < bound.x2) {
-            bound.x2 - x2
-        } else if (x2 > bound.x2) {
-            x - bound.x
-        } else 0
-        val deltaY = if (y2 < bound.y2) {
-            bound.y2 - y2
-        } else if (y2 > bound.y2) {
-            y - bound.y
-        } else 0
-
-        val largeArea = (deltaX + width) * (deltaY + height)
-        largeArea - area
+        val expandLeft = if (bound.x < x) x - bound.x else 0
+        val expandRight = if (x2 < bound.x2) bound.x2 - x2 else 0
+        val expandBottom = if (bound.y < y) y - bound.y else 0
+        val expandTop = if (y2 < bound.y2) bound.y2 - y2 else 0
+        val expandedArea = (expandLeft + width + expandRight) * (expandBottom + height + expandTop)
+        expandedArea - area
     }
 
     def area(): Double = width * height

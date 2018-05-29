@@ -22,7 +22,7 @@ object Node {
             val newBound = Rectangle(Coordinates(newX, newY), Coordinates(newX2, newY2))
 
             if (remainingChildren.nonEmpty) {
-                create(children.head, children.tail, newBound)
+                create(remainingChildren.head, remainingChildren.tail, newBound)
             } else {
                 newBound
             }
