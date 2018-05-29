@@ -12,6 +12,20 @@ object RTree {
 
 //TODO for later: use copy instead of constructor
 case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
+
+    def search(searchBound: Bound): Vector[Entry[T]] = {
+        searchTree(root, searchBound)
+    }
+
+    private def searchTree(node: Node[T], searchBound: Bound): Vector[Entry[T]] = {
+        if (node.isInstanceOf[Leaf[T]]) {
+            return node.children.filter(ch => ch.bound.overlap(searchBound))
+                .map(ch => ch.asInstanceOf[Entry[T]])
+        }
+        node.children.filter(ch => ch.bound.overlap(searchBound))
+            .flatMap(ch => searchTree(ch.asInstanceOf[Node[T]], searchBound))
+    }
+
     def insert(bound: Bound, value: T): RTree[T] = {
         insert(Entry[T](bound, value))
     }
@@ -27,7 +41,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         RTree(newRoot, size + 1, minEntries, maxEntries)
     }
 
-    def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {
+    private def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {
         if (node.isInstanceOf[Leaf[T]]) {
             if (node.children.size < maxEntries) {
                 return Right(node :+ entry)
@@ -53,7 +67,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         }
     }
 
-    def chooseLeaf(root: Node[T], entry: Entry[T]): Node[T] = {
+    private def chooseLeaf(root: Node[T], entry: Entry[T]): Node[T] = {
         val n = root
         n match {
             case n: Leaf[T] => n
@@ -62,11 +76,11 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
 
-    def linearPickNext(remainingChildren: Vector[HasBounds]): (HasBounds, Vector[HasBounds]) = {
+    private def linearPickNext(remainingChildren: Vector[HasBounds]): (HasBounds, Vector[HasBounds]) = {
         (remainingChildren.head, remainingChildren.tail)
     }
 
-    def distribute(remainingChildren: Vector[HasBounds], leftNode: Node[T], rightNode: Node[T]): (Node[T], Node[T]) = {
+    private def distribute(remainingChildren: Vector[HasBounds], leftNode: Node[T], rightNode: Node[T]): (Node[T], Node[T]) = {
         if (remainingChildren.isEmpty) {
             return (leftNode, rightNode)
         }
@@ -105,7 +119,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         }
     }
 
-    def splitNode(node: Node[T]): (Node[T], Node[T]) = {
+    private def splitNode(node: Node[T]): (Node[T], Node[T]) = {
         val children: Vector[HasBounds] = node.children
         val (leftSeed, rightSeed): (HasBounds, HasBounds) = linearPickSeeds(children)
         val remainingChildren = children.filter(c => c != leftSeed && c != rightSeed)
@@ -123,7 +137,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
 
-    def linearPickSeeds(children: Vector[HasBounds]): (HasBounds, HasBounds) = {
+    private def linearPickSeeds(children: Vector[HasBounds]): (HasBounds, HasBounds) = {
         case class Params(leftMostLeftSide: Double, //dimLb
                           leftMostRightSide: Double, //dimMinUb
                           rightMostLeftSide: Double, //dimMaxLb
@@ -166,14 +180,14 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     //FIXME unused function
-    def adjustTree(n: Node[T], nn: Option[Node[T]]): RTree[T] = {
+    private def adjustTree(n: Node[T], nn: Option[Node[T]]): RTree[T] = {
         if (n == root) {
             RTree(n, n.children.size, minEntries, maxEntries)
         }
         ???
     }
 
-    def chooseSubtree(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
+    private def chooseSubtree(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
         val childEnlPairs = children.map(c => (c, c.bound.enlargementToFit(entry.bound)))
         val minVal: (Node[T], Double) = childEnlPairs.minBy(_._2)
         val leastEnlChildren = childEnlPairs.filter(_._2 == minVal._2).map(_._1)

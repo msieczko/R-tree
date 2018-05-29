@@ -27,6 +27,10 @@ trait Bound {
     }
 
     def area(): Double = width * height
+
+    def overlap(other: Bound): Boolean = {
+        this.x <= other.x2 && other.x <= this.x2 && this.y <= other.y2 && other.y <= this.y2
+    }
 }
 
 case class Coordinates(x: Double, y: Double)

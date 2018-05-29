@@ -116,5 +116,34 @@ class RTreeTest extends FlatSpec {
         }
     }
 
+    "Search" should "return overlapping entries" in {
+        val appleEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "apple")
+        val orangeEntry = Entry(Rectangle(Coordinates(2, 2), Dimensions(2, 2)), "orange")
+        val lemonEntry = Entry(Rectangle(Coordinates(-1, -4), Dimensions(2, 2)), "lemon")
+        val peachEntry = Entry(Rectangle(Coordinates(3, -4), Dimensions(2, 1)), "peach")
+        var rtree = RTree[String](2, 3)
+            .insert(appleEntry)
+            .insert(orangeEntry)
+            .insert(lemonEntry)
+            .insert(peachEntry)
+
+        // Search bound contains searched entries
+        var searchBound: Bound = Rectangle(Coordinates(-3, -5), Coordinates(1, 3))
+        var result: Vector[Entry[String]] = rtree.search(searchBound)
+
+        assertResult(result.size)(2)
+        assert(result.contains(appleEntry))
+        assert(result.contains(lemonEntry))
+
+        // Search bound intersects searched entries
+        searchBound = Rectangle(Coordinates(0, -3), Coordinates(3, 2))
+        result = rtree.search(searchBound)
+
+        assertResult(result.size)(3)
+        assert(result.contains(lemonEntry))
+        assert(result.contains(peachEntry))
+        assert(result.contains(orangeEntry))
+    }
+
 
 }
