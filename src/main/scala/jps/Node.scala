@@ -6,6 +6,7 @@ trait HasBounds {
 
 sealed abstract class Node[T] extends HasBounds {
     def :+(child: HasBounds): Node[T]
+    def ++(children: Vector[HasBounds]): Node[T]
     def bound: Bound
     def children: Vector[HasBounds]
 }
@@ -37,6 +38,9 @@ case class Leaf[T](children: Vector[Entry[T]], bound: Bound) extends Node[T] {
         Leaf(children :+ entry.asInstanceOf[Entry[T]])
     }
 
+    override def ++(children: Vector[HasBounds]): Node[T] = {
+        Leaf(this.children ++ children.asInstanceOf[Vector[Entry[T]]])
+    }
 }
 
 object Leaf {
@@ -56,6 +60,10 @@ object Leaf {
 case class Branch[T](children: Vector[Node[T]], bound: Bound) extends Node[T] {
     override def :+(child: HasBounds): Node[T] = {
         Branch(children :+ child.asInstanceOf[Node[T]])
+    }
+
+    override def ++(children: Vector[HasBounds]): Node[T] = {
+        Branch(this.children ++ children.asInstanceOf[Vector[Node[T]]])
     }
 }
 

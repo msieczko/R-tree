@@ -70,10 +70,17 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         if (remainingChildren.isEmpty) {
             return (leftNode, rightNode)
         }
-        val (child, newRemaining) = linearPickNext(remainingChildren)
-        //TODO check this condition:
+
+        //TODO check this condition after implementing delete operation:
         // if one group has so few entries that all remaining entries must be assigned to it in order for it to have
         // minimum number of entries, assign them and stop
+        if (leftNode.children.size >= minEntries && rightNode.children.size + remainingChildren.size == minEntries) {
+            return (leftNode, rightNode ++ remainingChildren)
+        } else if (rightNode.children.size >= minEntries && leftNode.children.size + remainingChildren.size == minEntries) {
+            return (leftNode ++ remainingChildren, rightNode)
+        }
+
+        val (child, newRemaining) = linearPickNext(remainingChildren)
 
         val leftEnlargement = leftNode.bound.enlargementToFit(child.bound)
         val rightEnlargement = rightNode.bound.enlargementToFit(child.bound)

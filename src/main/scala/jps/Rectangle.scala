@@ -70,4 +70,11 @@ case class Point(override val coords: Coordinates) extends Bound {
     override def height: Double = 0.0
 
     override def area(): Double = 0.0
+
+    override def equals(obj: scala.Any): Boolean = {
+        obj match {
+            case obj: Bound => return obj.coords == coords && obj.dims == dims
+        }
+        super.equals(obj)
+    }
 }
