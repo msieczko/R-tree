@@ -11,9 +11,10 @@ object RTree {
 }
 
 //TODO for later: use copy instead of constructor
-//TODO introduce min/maxEntries requirement
-case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
 
+case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
+    require((2 <= minEntries) && (minEntries <= (maxEntries + 1) / 2),
+        "min/max number of entries must satisfy the condition: 2 <= minEntries <= (maxEntries + 1) / 2")
 
     def remove(entry: Entry[T]): RTree[T] = {
         root.remove(entry, minEntries) match {
