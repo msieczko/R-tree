@@ -4,13 +4,13 @@ import org.scalatest.FlatSpec
 
 class RTreeTest extends FlatSpec {
 
-    "RTree contructor" should "create an empty tree with maximal bounds" in {
+    "RTree constructor" should "create an empty tree with maximal bounds" in {
         val rtree = RTree[String]()
         assertResult(rtree.size)(0)
         assertResult(rtree.root)(Node.newRoot)
     }
 
-    "Insert of rectangles on empty RTree" should "add new elements and update bounds" in {
+    "Insertion of rectangle entry" should "return a new RTree with the new entry added and updated bounds" in {
         // 1 entry
         val appleRect = Rectangle(Coordinates(-2, 1), Dimensions(1, 1))
         val appleEntry = Entry(appleRect, "apple")
@@ -63,7 +63,7 @@ class RTreeTest extends FlatSpec {
         }
     }
 
-    "Insert of points on empty RTree" should "add new elements and update bounds" in {
+    "Insertion of point entry" should "return a new RTree with the new entry added and updated bounds" in {
         // 1 entry
         val p1 = Point(Coordinates(2, 1))
         val p1Entry = Entry(p1, "p1")
@@ -116,7 +116,7 @@ class RTreeTest extends FlatSpec {
         }
     }
 
-    "Search" should "return overlapping entries" in {
+    "Search" should "return a Vector of overlapping entries" in {
         val appleEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "apple")
         val orangeEntry = Entry(Rectangle(Coordinates(2, 2), Dimensions(2, 2)), "orange")
         val lemonEntry = Entry(Rectangle(Coordinates(-1, -4), Dimensions(2, 2)), "lemon")
@@ -145,5 +145,23 @@ class RTreeTest extends FlatSpec {
         assert(result.contains(orangeEntry))
     }
 
+    "Removal of rectangle entry" should "return a new RTtee with desired entry deleted and updated bounds" in {
+        val appleEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "apple")
+        val orangeEntry = Entry(Rectangle(Coordinates(2, 2), Dimensions(2, 2)), "orange")
+        val lemonEntry = Entry(Rectangle(Coordinates(-1, -4), Dimensions(2, 2)), "lemon")
+        val peachEntry = Entry(Rectangle(Coordinates(3, -4), Dimensions(2, 1)), "peach")
+        var rtree = RTree[String](2, 3)
+            .insert(appleEntry)
+            .insert(orangeEntry)
+            .insert(lemonEntry)
+            .insert(peachEntry)
 
+        rtree = rtree.remove(peachEntry)
+        assertResult(rtree.size)(3)
+        assertResult(rtree.root.children.size)(3)
+        assertResult(rtree.root.children.toSet)(Set(appleEntry, orangeEntry, lemonEntry))
+        assertResult(rtree.root.bound)(Rectangle(Coordinates(-2, -4), Coordinates(4, 4)))
+
+        //TODO more tests
+    }
 }

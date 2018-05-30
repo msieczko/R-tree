@@ -11,7 +11,21 @@ object RTree {
 }
 
 //TODO for later: use copy instead of constructor
+//TODO introduce min/maxEntries requirement
 case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
+
+
+    def remove(entry: Entry[T]): RTree[T] = {
+        root.remove(entry, minEntries) match {
+            case Some((q, Some(newRoot))) =>
+                q.foldLeft(RTree(newRoot, size - q.size - 1, minEntries, maxEntries))(_ insert _)
+            case Some((q, None)) =>
+                q.foldLeft(RTree[T]())(_ insert _)
+            case None =>
+                this
+        }
+    }
+
 
     def search(searchBound: Bound): Vector[Entry[T]] = {
         searchTree(root, searchBound)

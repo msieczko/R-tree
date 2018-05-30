@@ -6,9 +6,16 @@ trait HasBounds {
 
 sealed abstract class Node[T] extends HasBounds {
     def :+(child: HasBounds): Node[T]
+
     def ++(children: Vector[HasBounds]): Node[T]
+
     def bound: Bound
+
     def children: Vector[HasBounds]
+
+    def remove(entry: Entry[T], minEntries: Int): Option[(Vector[Entry[T]], Option[Node[T]])]
+
+    def getAllEntries: Vector[Entry[T]]
 }
 
 object Node {
@@ -41,6 +48,21 @@ case class Leaf[T](children: Vector[Entry[T]], bound: Bound) extends Node[T] {
     override def ++(children: Vector[HasBounds]): Node[T] = {
         Leaf(this.children ++ children.asInstanceOf[Vector[Entry[T]]])
     }
+
+    override def getAllEntries: Vector[Entry[T]] = {
+        children
+    }
+
+    override def remove(entry: Entry[T], minEntries: Int): Option[(Vector[Entry[T]], Option[Node[T]])] = {
+        val entryToRemove: Option[Entry[T]] = children.find(_ == entry)
+        if (entryToRemove.isEmpty) {
+            None
+        } else if (children.size == minEntries) {
+            Some(children.filter(_ != entryToRemove.get), None)
+        } else {
+            Some(Vector.empty, Some(Leaf(children.filter(_ != entryToRemove.get))))
+        }
+    }
 }
 
 object Leaf {
@@ -64,6 +86,29 @@ case class Branch[T](children: Vector[Node[T]], bound: Bound) extends Node[T] {
 
     override def ++(children: Vector[HasBounds]): Node[T] = {
         Branch(this.children ++ children.asInstanceOf[Vector[Node[T]]])
+    }
+
+    override def getAllEntries: Vector[Entry[T]] = {
+        children.flatMap(_.getAllEntries)
+    }
+
+    override def remove(entry: Entry[T], minEntries: Int): Option[(Vector[Entry[T]], Option[Node[T]])] = {
+        children.zipWithIndex.foreach { case (child, i) =>
+            if (child.bound.overlap(entry.bound)) {
+                child.remove(entry, minEntries) match {
+                    case Some((q, Some(node))) =>
+                        return Some(q, Some(Branch((children.take(i) :+ node) ++ children.drop(i + 1))))
+                    case Some((q, None)) =>
+                        if (children.size == minEntries) {
+                            val otherChildrensEntries = children.filter(_ != child).flatMap(_.getAllEntries)
+                            return Some(q ++ otherChildrensEntries, None)
+                        }
+                        return Some(q, Some(Branch(children.filter(_ != child))))
+                    case None =>
+                }
+            }
+        }
+        None
     }
 }
 
