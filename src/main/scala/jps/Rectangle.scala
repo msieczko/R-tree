@@ -38,8 +38,10 @@ case class Coordinates(x: Double, y: Double)
 case class Dimensions(width: Double, height: Double)
 
 /**
-  * @param coords Left bottom corner of the rectangle
-  * @param dims   Dimensions of the rectangle
+  * Constructs a rectangle with given dimensions
+  *
+  * @param coords the left bottom corner of the rectangle
+  * @param dims   the dimensions of the rectangle
   */
 case class Rectangle(coords: Coordinates, dims: Dimensions) extends Bound
 
@@ -58,9 +60,10 @@ object Rectangle {
 }
 
 /**
+  * Constructs a point with given coordinates.<br>
   * Point is a rectangle with dimensions set to 0.0
   *
-  * @param coords Point coordinates
+  * @param coords the coordinates of the point
   */
 case class Point(override val coords: Coordinates) extends Bound {
     override def dims: Dimensions = Dimensions(0.0, 0.0)

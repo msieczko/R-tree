@@ -124,4 +124,11 @@ object Branch {
     }
 }
 
+/**
+  * Constructs a new entry
+  *
+  * @param bound the bound of the entry
+  * @param value the value of the entry
+  * @tparam T the type of the value
+  */
 case class Entry[T](bound: Bound, value: T) extends HasBounds

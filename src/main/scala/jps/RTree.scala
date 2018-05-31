@@ -1,10 +1,30 @@
 package jps
 
 object RTree {
+    /**
+      * Constructs an empty R-Tree with given parameters
+      *
+      * @param minEntries the minimum number of children in a node
+      * @param maxEntries the maximum number of children in a node
+      * @tparam T type of data in entries
+      * @return an empty R-Tree with given parameters
+      */
     def apply[T](minEntries: Int, maxEntries: Int): RTree[T] = {
         RTree[T](Node.newRoot[T], 0, minEntries, maxEntries)
     }
 
+    /**
+      * Constructs an empty R-Tree with default parameters values:
+      *
+      * <ul>
+      * <li>`minEntries` - minimum number of children in a node set to 2</li>
+      * <li>`maxEntries` - maximum number of children in a node set to 50</li>
+      * </ul>
+      *
+      * @tparam T type of data in entries
+      * @return an empty R-Tree with minimum number of children in a node set to 2
+      *         and maximum number of children in a node set to 50
+      */
     def apply[T](): RTree[T] = {
         RTree[T](Node.newRoot[T], 0, 2, 50)
     }
@@ -14,6 +34,12 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     require((2 <= minEntries) && (minEntries <= (maxEntries + 1) / 2),
         "min/max number of entries must satisfy the condition: 2 <= minEntries <= (maxEntries + 1) / 2")
 
+    /**
+      * Removes the given entry from the R-Tree
+      *
+      * @param entry the entry to remove
+      * @return new R-Tree without given entry
+      */
     def remove(entry: Entry[T]): RTree[T] = {
         root.remove(entry, minEntries) match {
             case Some((q, Some(newRoot))) =>
@@ -25,7 +51,12 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         }
     }
 
-
+    /**
+      * Finds entries within bound
+      *
+      * @param searchBound the bound to search within
+      * @return entries within given bound
+      */
     def search(searchBound: Bound): Vector[Entry[T]] = {
         searchTree(root, searchBound)
     }
@@ -39,10 +70,23 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             .flatMap(ch => searchTree(ch.asInstanceOf[Node[T]], searchBound))
     }
 
+    /**
+      * Inserts a new entry with given bound and value to the R-Tree
+      *
+      * @param bound the bound of the value
+      * @param value the value to insert
+      * @return new R-Tree with the `entry` element inserted
+      */
     def insert(bound: Bound, value: T): RTree[T] = {
         insert(Entry[T](bound, value))
     }
 
+    /**
+      * Inserts a new entry to the R-Tree
+      *
+      * @param entry the entry to insert
+      * @return new R-Tree with the `entry` element inserted
+      */
     def insert(entry: Entry[T]): RTree[T] = {
         if (size == 0) {
             return this.copy(Leaf(entry), 1)

@@ -10,6 +10,22 @@ class RTreeTest extends FlatSpec {
         assertResult(rtree.root)(Node.newRoot)
     }
 
+    "RTree constructor" should "not allow value of minEntries < 2" in {
+        assertThrows[IllegalArgumentException] {
+            val rtree = RTree[String](1, 50)
+        }
+    }
+
+    "RTree constructor" should "not allow value of minEntries > (maxEntries + 1) / 2" in {
+        assertThrows[IllegalArgumentException] {
+            val rtree = RTree[String](3, 3)
+        }
+    }
+
+    "RTree constructor" should "allow value of minEntries <= (maxEntries + 1) / 2" in {
+        val rtree = RTree[String](2, 3)
+    }
+
     "Insertion of rectangle entry" should "return a new RTree with the new entry added and updated bounds" in {
         // 1 entry
         val appleRect = Rectangle(Coordinates(-2, 1), Dimensions(1, 1))
@@ -122,10 +138,10 @@ class RTreeTest extends FlatSpec {
         val lemonEntry = Entry(Rectangle(Coordinates(-1, -4), Dimensions(2, 2)), "lemon")
         val peachEntry = Entry(Rectangle(Coordinates(3, -4), Dimensions(2, 1)), "peach")
         var rtree = RTree[String](2, 3)
-            .insert(appleEntry)
-            .insert(orangeEntry)
-            .insert(lemonEntry)
-            .insert(peachEntry)
+          .insert(appleEntry)
+          .insert(orangeEntry)
+          .insert(lemonEntry)
+          .insert(peachEntry)
 
         // Search bound contains searched entries
         var searchBound: Bound = Rectangle(Coordinates(-3, -5), Coordinates(1, 3))
@@ -151,10 +167,10 @@ class RTreeTest extends FlatSpec {
         val lemonEntry = Entry(Rectangle(Coordinates(-1, -4), Dimensions(2, 2)), "lemon")
         val peachEntry = Entry(Rectangle(Coordinates(3, -4), Dimensions(2, 1)), "peach")
         var rtree = RTree[String](2, 3)
-            .insert(appleEntry)
-            .insert(orangeEntry)
-            .insert(lemonEntry)
-            .insert(peachEntry)
+          .insert(appleEntry)
+          .insert(orangeEntry)
+          .insert(lemonEntry)
+          .insert(peachEntry)
 
         rtree = rtree.remove(peachEntry)
         assertResult(rtree.size)(3)
