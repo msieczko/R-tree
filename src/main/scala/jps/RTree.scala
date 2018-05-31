@@ -45,7 +45,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             case Some((q, Some(newRoot))) =>
                 q.foldLeft(this.copy(newRoot, size - q.size - 1))(_ insert _)
             case Some((q, None)) =>
-                q.foldLeft(RTree[T]())(_ insert _)
+                q.foldLeft(RTree[T](minEntries, maxEntries))(_ insert _)
             case None =>
                 this
         }
