@@ -30,10 +30,9 @@ object RTree {
     }
 }
 
-//TODO for later: use copy instead of constructor
-//TODO introduce min/maxEntries requirement
 case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
-
+    require((2 <= minEntries) && (minEntries <= (maxEntries + 1) / 2),
+        "min/max number of entries must satisfy the condition: 2 <= minEntries <= (maxEntries + 1) / 2")
     /**
       * Removes the given entry from the R-Tree
       *
@@ -43,7 +42,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     def remove(entry: Entry[T]): RTree[T] = {
         root.remove(entry, minEntries) match {
             case Some((q, Some(newRoot))) =>
-                q.foldLeft(RTree(newRoot, size - q.size - 1, minEntries, maxEntries))(_ insert _)
+                q.foldLeft(this.copy(newRoot, size - q.size - 1))(_ insert _)
             case Some((q, None)) =>
                 q.foldLeft(RTree[T]())(_ insert _)
             case None =>
@@ -64,10 +63,10 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     private def searchTree(node: Node[T], searchBound: Bound): Vector[Entry[T]] = {
         if (node.isInstanceOf[Leaf[T]]) {
             return node.children.filter(ch => ch.bound.overlap(searchBound))
-              .map(ch => ch.asInstanceOf[Entry[T]])
+                .map(ch => ch.asInstanceOf[Entry[T]])
         }
         node.children.filter(ch => ch.bound.overlap(searchBound))
-          .flatMap(ch => searchTree(ch.asInstanceOf[Node[T]], searchBound))
+            .flatMap(ch => searchTree(ch.asInstanceOf[Node[T]], searchBound))
     }
 
     /**
@@ -89,13 +88,13 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
       */
     def insert(entry: Entry[T]): RTree[T] = {
         if (size == 0) {
-            return RTree(Leaf(entry), 1, minEntries, maxEntries)
+            return this.copy(Leaf(entry), 1)
         }
         val newRoot = insert(root, entry) match {
             case Left(splitRoot) => Branch(Vector(splitRoot._1, splitRoot._2))
             case Right(oldRoot) => oldRoot
         }
-        RTree(newRoot, size + 1, minEntries, maxEntries)
+        this.copy(newRoot, size + 1)
     }
 
     private def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {

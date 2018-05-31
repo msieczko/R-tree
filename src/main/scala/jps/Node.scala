@@ -49,9 +49,7 @@ case class Leaf[T](children: Vector[Entry[T]], bound: Bound) extends Node[T] {
         Leaf(this.children ++ children.asInstanceOf[Vector[Entry[T]]])
     }
 
-    override def getAllEntries: Vector[Entry[T]] = {
-        children
-    }
+    override def getAllEntries: Vector[Entry[T]] = children
 
     override def remove(entry: Entry[T], minEntries: Int): Option[(Vector[Entry[T]], Option[Node[T]])] = {
         val entryToRemove: Option[Entry[T]] = children.find(_ == entry)
@@ -121,8 +119,7 @@ object Branch {
         if (children.nonEmpty) {
             Branch(children, Node.getBound(children))
         } else {
-            ???
-            //TODO this should never happen
+            ??? //TODO this should never happen
         }
     }
 }
