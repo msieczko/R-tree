@@ -177,7 +177,58 @@ class RTreeTest extends FlatSpec {
         assertResult(rtree.root.children.size)(3)
         assertResult(rtree.root.children.toSet)(Set(appleEntry, orangeEntry, lemonEntry))
         assertResult(rtree.root.bound)(Rectangle(Coordinates(-2, -4), Coordinates(4, 4)))
-
-        //TODO more tests
     }
+
+    "Removal of rectangle entries" should "return a new RTtee with desired entries deleted and updated bounds" in {
+        val appleEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "apple")
+        val orangeEntry = Entry(Rectangle(Coordinates(2, 2), Dimensions(2, 2)), "orange")
+        val lemonEntry = Entry(Rectangle(Coordinates(-1, -4), Dimensions(2, 2)), "lemon")
+        val peachEntry = Entry(Rectangle(Coordinates(3, -4), Dimensions(2, 1)), "peach")
+        val bananaEntry = Entry(Rectangle(Coordinates(4, 3), Dimensions(1, 1)), "banana")
+        val grapeEntry = Entry(Rectangle(Coordinates(-1, -6), Dimensions(1, 2)), "grape")
+        val raspberryEntry = Entry(Rectangle(Coordinates(12, 2), Dimensions(2, 2)), "raspberry")
+        var rtree = RTree[String](2, 3)
+          .insert(appleEntry)
+          .insert(orangeEntry)
+          .insert(lemonEntry)
+          .insert(peachEntry)
+          .insert(bananaEntry)
+          .insert(grapeEntry)
+          .insert(raspberryEntry)
+
+
+        rtree = rtree.remove(peachEntry)
+        // 6 entries, 3 leaves
+        assertResult(6)(rtree.size)
+        assertResult(3)(rtree.root.children.size)
+        assertResult(Set(grapeEntry, lemonEntry))(getLeafContainingEntry(rtree, grapeEntry).children.toSet)
+        assertResult(Set(appleEntry, orangeEntry))(getLeafContainingEntry(rtree, appleEntry).children.toSet)
+        assertResult(Set(raspberryEntry, bananaEntry))(getLeafContainingEntry(rtree, raspberryEntry).children.toSet)
+        assertResult(Rectangle(Coordinates(-2, -6), Dimensions(16, 10)))(rtree.root.bound)
+        assertResult(Rectangle(Coordinates(-1, -6), Dimensions(2, 4)))(getLeafContainingEntry(rtree, grapeEntry).bound)
+
+        rtree = rtree.remove(appleEntry)
+        // 5 entries, 2 leaves
+        assertResult(5)(rtree.size)
+        assertResult(2)(rtree.root.children.size)
+        assertResult(Set(grapeEntry, lemonEntry))(getLeafContainingEntry(rtree, grapeEntry).children.toSet)
+        assertResult(Set(bananaEntry, orangeEntry, raspberryEntry))(getLeafContainingEntry(rtree, bananaEntry).children.toSet)
+        assertResult(Rectangle(Coordinates(-1, -6), Dimensions(15, 10)))(rtree.root.bound)
+        assertResult(Rectangle(Coordinates(2, 2), Dimensions(12, 2)))(getLeafContainingEntry(rtree, orangeEntry).bound)
+
+        rtree = rtree.remove(grapeEntry)
+        // 4 entries, 2 leaves
+        assertResult(4)(rtree.size)
+        assertResult(2)(rtree.root.children.size)
+        assertResult(Set(orangeEntry, lemonEntry))(getLeafContainingEntry(rtree, orangeEntry).children.toSet)
+        assertResult(Set(bananaEntry, raspberryEntry))(getLeafContainingEntry(rtree, bananaEntry).children.toSet)
+        assertResult(Rectangle(Coordinates(-1, -4), Dimensions(15, 8)))(rtree.root.bound)
+        // assertResult(Rectangle(Coordinates(2, 2), Dimensions(12, 2)))(getLeafContainingEntry(rtree, grapeEntry).bound)
+
+    }
+
+    def getLeafContainingEntry[T](rtree: RTree[T], entry: Entry[T]): Leaf[T] = {
+        rtree.root.children.asInstanceOf[Vector[Leaf[T]]].filter(_.children.contains(entry)).head
+    }
+
 }
