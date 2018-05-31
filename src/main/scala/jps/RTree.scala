@@ -52,7 +52,10 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     /**
-      * Finds entries within bound
+      * Finds entries within bound<br />
+      *
+      * e.g.<code> val searchBound: Bound = Rectangle(Coordinates(-3, -5), Coordinates(1, 3))<br />
+      *  val result: Vector[Entry[String]] = rtree.search(searchBound)</code>
       *
       * @param searchBound the bound to search within
       * @return entries within given bound
