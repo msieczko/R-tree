@@ -99,6 +99,14 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     private def insert(node: Node[T], entry: Entry[T]): Either[(Node[T], Node[T]), Node[T]] = {
+        def createNode(newChildren: Vector[HasBounds]): Node[T] = {
+            newChildren(0) match {
+                case _: Entry[T] => Leaf(newChildren.asInstanceOf[Vector[Entry[T]]])
+                case _: Leaf[T] => Branch(newChildren.asInstanceOf[Vector[Leaf[T]]])
+                case _: Branch[T] => Branch(newChildren.asInstanceOf[Vector[Branch[T]]])
+            }
+        }
+
         if (node.isInstanceOf[Leaf[T]]) {
             if (node.children.size < maxEntries) {
                 return Right(node :+ entry)
@@ -110,17 +118,16 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         insert(nodeToDescend, entry) match {
             case Left(splitNodes) =>
                 val newChildren = node.children.filter(n => n != nodeToDescend) :+ splitNodes._1 :+ splitNodes._2
-                val newNode = newChildren(0) match {
-                    case _: Entry[T] => Leaf(newChildren.asInstanceOf[Entry[T]])
-                    case _: Leaf[T] => Branch(newChildren.asInstanceOf[Leaf[T]])
-                    case _: Branch[T] => Branch(newChildren.asInstanceOf[Branch[T]])
-                }
+                val newNode: Node[T] = createNode(newChildren)
                 if (node.children.size == maxEntries) {
                     Left(splitNode(newNode))
                 } else {
                     Right(newNode)
                 }
-            case Right(singleNode) => Right(singleNode)
+            case Right(singleNode) => {
+                val newChildren = node.children.filter(n => n != nodeToDescend) :+ singleNode
+                Right(createNode(newChildren))
+            }
         }
     }
 
