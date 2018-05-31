@@ -47,7 +47,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             case Some((q, None)) =>
                 q.foldLeft(RTree[T](minEntries, maxEntries))(_ insert _)
             case None =>
-                this
+                throw new NoSuchElementException
         }
     }
 
@@ -130,15 +130,6 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             }
         }
     }
-
-    private def chooseLeaf(root: Node[T], entry: Entry[T]): Node[T] = {
-        val n = root
-        n match {
-            case n: Leaf[T] => n
-            case n: Branch[T] => chooseLeaf(chooseSubtree(n.children, entry), entry)
-        }
-    }
-
 
     private def linearPickNext(remainingChildren: Vector[HasBounds]): (HasBounds, Vector[HasBounds]) = {
         (remainingChildren.head, remainingChildren.tail)

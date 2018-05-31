@@ -77,6 +77,37 @@ class RTreeTest extends FlatSpec {
             assert(nodeChildren(1).contains(lemonEntry))
             assert(nodeChildren(1).contains(peachEntry))
         }
+
+        //
+
+        // 5 entries
+        val bananaEntry = Entry(Rectangle(Coordinates(4, 3), Dimensions(1, 1)), "banana")
+        rtree = rtree.insert(bananaEntry)
+        assertResult(rtree.size)(5)
+        assertResult(rtree.root.children.size)(2)
+        assertResult(getLeafContainingEntry(rtree, bananaEntry).children.toSet)(Set(appleEntry, orangeEntry, bananaEntry))
+        assertResult(getLeafContainingEntry(rtree, lemonEntry).children.toSet)(Set(peachEntry, lemonEntry))
+
+
+        // 6 entries
+        val raspberryEntry = Entry(Rectangle(Coordinates(12, 2), Dimensions(2, 2)), "raspberry")
+        rtree = rtree.insert(raspberryEntry)
+        assertResult(rtree.size)(6)
+        assertResult(rtree.root.children.size)(3)
+        assertResult(getLeafContainingEntry(rtree, appleEntry).children.toSet)(Set(appleEntry, orangeEntry))
+        assertResult(getLeafContainingEntry(rtree, raspberryEntry).children.toSet)(Set(raspberryEntry, bananaEntry))
+        assertResult(getLeafContainingEntry(rtree, lemonEntry).children.toSet)(Set(peachEntry, lemonEntry))
+
+
+        // 7 entries
+        val grapeEntry = Entry(Rectangle(Coordinates(-1, -6), Dimensions(1, 2)), "grape")
+        rtree = rtree.insert(grapeEntry)
+        assertResult(rtree.size)(7)
+        assertResult(rtree.root.children.size)(3)
+        assertResult(getLeafContainingEntry(rtree, appleEntry).children.toSet)(Set(appleEntry, orangeEntry))
+        assertResult(getLeafContainingEntry(rtree, raspberryEntry).children.toSet)(Set(raspberryEntry, bananaEntry))
+        assertResult(getLeafContainingEntry(rtree, lemonEntry).children.toSet)(Set(peachEntry, lemonEntry, grapeEntry))
+
     }
 
     "Insertion of point entry" should "return a new RTree with the new entry added and updated bounds" in {
@@ -130,6 +161,30 @@ class RTreeTest extends FlatSpec {
             assert(nodeChildren(1).contains(p1Entry))
             assert(nodeChildren(1).contains(p4Entry))
         }
+    }
+
+    "Insertion of overlapping rectangles" should "return a new RTree with the new entries" in {
+        val appleEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "apple")
+        val orangeEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "orange")
+        val lemonEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "lemon")
+        val peachEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "peach")
+        val bananaEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "banana")
+        val grapeEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "grape")
+        val raspberryEntry = Entry(Rectangle(Coordinates(-2, 1), Dimensions(1, 1)), "raspberry")
+        var rtree = RTree[String](2, 3)
+          .insert(appleEntry)
+          .insert(orangeEntry)
+          .insert(lemonEntry)
+          .insert(peachEntry)
+          .insert(bananaEntry)
+          .insert(grapeEntry)
+          .insert(raspberryEntry)
+
+
+        assertResult(7)(rtree.size)
+        assertResult(Set(appleEntry, orangeEntry, lemonEntry,
+            peachEntry, bananaEntry, grapeEntry,
+            raspberryEntry))(rtree.root.getAllEntries.toSet)
     }
 
     "Search" should "return a Vector of overlapping entries" in {
@@ -223,12 +278,51 @@ class RTreeTest extends FlatSpec {
         assertResult(Set(orangeEntry, lemonEntry))(getLeafContainingEntry(rtree, orangeEntry).children.toSet)
         assertResult(Set(bananaEntry, raspberryEntry))(getLeafContainingEntry(rtree, bananaEntry).children.toSet)
         assertResult(Rectangle(Coordinates(-1, -4), Dimensions(15, 8)))(rtree.root.bound)
-        // assertResult(Rectangle(Coordinates(2, 2), Dimensions(12, 2)))(getLeafContainingEntry(rtree, grapeEntry).bound)
+        assertResult(Rectangle(Coordinates(-1, -4), Dimensions(5, 8)))(getLeafContainingEntry(rtree, orangeEntry).bound)
 
+        rtree = rtree.remove(orangeEntry)
+        // 3 entries, 1 leaf
+        assertResult(3)(rtree.size)
+        assertResult(3)(rtree.root.children.size)
+        assertResult(Set(bananaEntry, raspberryEntry, lemonEntry))(rtree.root.children.toSet)
+        assertResult(Rectangle(Coordinates(-1, -4), Dimensions(15, 8)))(rtree.root.bound)
+
+        rtree = rtree.remove(lemonEntry)
+        // 2 entries, 1 leaf
+        assertResult(2)(rtree.size)
+        assertResult(2)(rtree.root.children.size)
+        assertResult(Set(bananaEntry, raspberryEntry))(rtree.root.children.toSet)
+        assertResult(Rectangle(Coordinates(4, 2), Dimensions(10, 2)))(rtree.root.bound)
+
+        rtree = rtree.remove(bananaEntry)
+        // 1 entry, 1 leaf
+        assertResult(1)(rtree.size)
+        assertResult(1)(rtree.root.children.size)
+        assertResult(Set(raspberryEntry))(rtree.root.children.toSet)
+        assertResult(Rectangle(Coordinates(12, 2), Dimensions(2, 2)))(rtree.root.bound)
+
+        rtree = rtree.remove(raspberryEntry)
+        // 0 entries
+        assertResult(0)(rtree.size)
+        assertResult(Set())(rtree.root.children.toSet)
     }
 
     def getLeafContainingEntry[T](rtree: RTree[T], entry: Entry[T]): Leaf[T] = {
         rtree.root.children.asInstanceOf[Vector[Leaf[T]]].filter(_.children.contains(entry)).head
     }
 
+    "Removal of non existing entry from empty tree" should "" in {
+        val rtree = RTree[String]()
+        assertThrows[NoSuchElementException] {
+            rtree.remove(Entry(Rectangle(Coordinates(4, 3), Dimensions(1, 1)), "banana"))
+        }
+    }
+
+    "Removal of non existing entry from non-empty tree" should "" in {
+        val rtree = RTree[String]()
+            .insert(Entry(Rectangle(Coordinates(-20, -20), Dimensions(1, 1)), "apple"))
+        assertThrows[NoSuchElementException] {
+            rtree.remove(Entry(Rectangle(Coordinates(4, 3), Dimensions(1, 1)), "banana"))
+        }
+    }
 }
