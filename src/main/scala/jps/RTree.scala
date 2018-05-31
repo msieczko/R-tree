@@ -33,6 +33,7 @@ object RTree {
 case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) {
     require((2 <= minEntries) && (minEntries <= (maxEntries + 1) / 2),
         "min/max number of entries must satisfy the condition: 2 <= minEntries <= (maxEntries + 1) / 2")
+
     /**
       * Removes the given entry from the R-Tree
       *
@@ -51,7 +52,7 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
     }
 
     /**
-      * Finds entries withing bound
+      * Finds entries within bound
       *
       * @param searchBound the bound to search within
       * @return entries within given bound
