@@ -72,7 +72,7 @@ object Leaf {
         if (children.nonEmpty) {
             Leaf(children, Node.getBound(children))
         } else {
-            Node.newRoot[T] //TODO check for correctness
+            Node.newRoot[T]
         }
     }
 }
@@ -119,7 +119,7 @@ object Branch {
         if (children.nonEmpty) {
             Branch(children, Node.getBound(children))
         } else {
-            ??? //TODO this should never happen
+            ??? //this should never happen
         }
     }
 }

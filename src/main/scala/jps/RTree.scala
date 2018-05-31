@@ -149,9 +149,6 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
             return (leftNode, rightNode)
         }
 
-        //TODO check this condition after implementing delete operation:
-        // if one group has so few entries that all remaining entries must be assigned to it in order for it to have
-        // minimum number of entries, assign them and stop
         if (leftNode.children.size >= minEntries && rightNode.children.size + remainingChildren.size == minEntries) {
             return (leftNode, rightNode ++ remainingChildren)
         } else if (rightNode.children.size >= minEntries && leftNode.children.size + remainingChildren.size == minEntries) {
@@ -202,12 +199,12 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
 
 
     private def linearPickSeeds(children: Vector[HasBounds]): (HasBounds, HasBounds) = {
-        case class Params(leftMostLeftSide: Double, //dimLb
-                          leftMostRightSide: Double, //dimMinUb
-                          rightMostLeftSide: Double, //dimMaxLb
-                          rightMostRightSide: Double, //dimUb
-                          leftEntry: Option[HasBounds], //nMinLb
-                          rightEntry: Option[HasBounds]) //nMaxLb //TODO delete
+        case class Params(leftMostLeftSide: Double,
+                          leftMostRightSide: Double,
+                          rightMostLeftSide: Double,
+                          rightMostRightSide: Double,
+                          leftEntry: Option[HasBounds],
+                          rightEntry: Option[HasBounds])
 
         def lpsX(ch: HasBounds, remaining: Vector[HasBounds], p: Params): (Double, HasBounds, HasBounds) = {
             val leftMostLeftSide = Math.min(ch.bound.x, p.leftMostLeftSide)
@@ -241,14 +238,6 @@ case class RTree[T](root: Node[T], size: Int, minEntries: Int, maxEntries: Int) 
         val xSeeds = lpsX(children.head, children.tail, initParams)
         val ySeeds = lpsY(children.head, children.tail, initParams)
         if (xSeeds._1 > ySeeds._1) (xSeeds._2, xSeeds._3) else (ySeeds._2, ySeeds._3)
-    }
-
-    //FIXME unused function
-    private def adjustTree(n: Node[T], nn: Option[Node[T]]): RTree[T] = {
-        if (n == root) {
-            RTree(n, n.children.size, minEntries, maxEntries)
-        }
-        ???
     }
 
     private def chooseSubtree(children: Vector[Node[T]], entry: Entry[T]): Node[T] = {
